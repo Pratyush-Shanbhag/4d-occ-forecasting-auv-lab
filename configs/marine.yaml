@@ -1,0 +1,48 @@
+# Configuration file for Marine Dataset (MIT Sea Grant Philos dataset)
+# This dataset contains LiDAR data from a stationary vessel observing ships passing by
+
+# Dataset splits are handled programmatically in MarineDataset class
+# Since this is a single sequence dataset, splits are time-based:
+# - train: first 70% of frames
+# - val: next 15% of frames  
+# - test: last 15% of frames
+# - trainval: first 85% of frames
+# - all: all frames
+
+# Note: The dataset uses frame-based splitting within a single sequence "00"
+# Adjust these percentages in data/marine.py if needed
+
+# Point cloud range for marine environment
+# Default range similar to other datasets, but may need adjustment for marine scenes
+# Format: [x_min, y_min, z_min, x_max, y_max, z_max]
+# Marine environments may need different ranges considering:
+# - Water surface reflections
+# - Focus on ships passing by (typically within 50-100m)
+# - Stationary ego vessel
+pc_range: [-70.0, -70.0, -4.5, 70.0, 70.0, 4.5]
+
+# Voxel size for discretization (in meters)
+# Same as other datasets for consistency
+voxel_size: 0.2
+
+# Number of input frames (past frames to use for prediction)
+n_input: 5
+
+# Step size for input frames (1 = consecutive frames)
+input_step: 2
+
+# Number of output frames (future frames to predict)
+n_output: 5
+
+# Step size for output frames (1 = consecutive frames)
+output_step: 2
+
+# Dataset name
+dataset: marine
+
+# Root directory for marine dataset (set via command line or config)
+# marine_root: /path/to/extracted/marine/data
+
+# Configuration file path (optional, can be None)
+# marine_cfg: configs/marine.yaml
+
