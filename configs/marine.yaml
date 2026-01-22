@@ -37,6 +37,11 @@ n_output: 5
 # Step size for output frames (1 = consecutive frames)
 output_step: 2
 
+# Training configuration
+# Note: Increased from 15 to 30 epochs for better convergence
+# Monitor validation loss to determine if early stopping is needed
+num_epoch: 30
+
 # Dataset name
 dataset: marine
 

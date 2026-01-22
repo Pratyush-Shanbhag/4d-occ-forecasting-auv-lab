@@ -29,7 +29,9 @@ def get_grid_mask(points, pc_range):
 def get_rendered_pcds(origin, points, tindex, gt_dist, pred_dist, pc_range, eval_within_grid=False, eval_outside_grid=False):
     pcds = []
     for t in range(len(origin)):
-        mask = np.logical_and(tindex == t, gt_dist > 0.0)
+        # FIX: Use pred_dist > 0.0 for predictions, not gt_dist > 0.0
+        # This ensures we show all predicted points, not just where ground truth has valid rays
+        mask = np.logical_and(tindex == t, pred_dist > 0.0)
         if eval_within_grid:
             mask = np.logical_and(mask, get_grid_mask(points, pc_range))
         if eval_outside_grid:

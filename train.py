@@ -279,9 +279,15 @@ def train(args):
                         _use_new_zipfile_serialization=False,
                 )
             else:
+                # Print validation metrics prominently
+                print("\n" + "="*60)
+                print(f"VALIDATION METRICS - Epoch {epoch}/{args.num_epoch}")
+                print("="*60)
                 for key in total_val_loss:
                     mean_val_loss = total_val_loss[key] / num_example
                     writer.add_scalar(f"{phase}/{key}", mean_val_loss, n_iter)
+                    print(f"  {key}: {mean_val_loss:.4f}")
+                print("="*60 + "\n")
 
         scheduler.step()
     #

@@ -107,6 +107,7 @@ class MarineDataset(Dataset):
                 - input_step: Step size for input frames
                 - n_output: Number of output frames
                 - output_step: Step size for output frames
+                - debug: Optional flag to enable debug prints (default: False)
         """
         # Setup pairs of input frames and output frames
         self.marine_root = marine_root
@@ -117,6 +118,7 @@ class MarineDataset(Dataset):
 
         self.pc_range = kwargs["pc_range"]
         self.voxel_size = kwargs["voxel_size"]
+        self.debug = kwargs.get("debug", False)
 
         self.n_input = kwargs["n_input"]
         self.input_step = kwargs.get("input_step", 1)
@@ -254,9 +256,20 @@ class MarineDataset(Dataset):
 
                 points = np.ones((scan.shape))
                 points[:, :3] = scan[:, :3]
+                
+                if self.debug and i == 0 and index == ref_index:
+                    print(f"\n[DEBUG] Frame {index} ({velo_name}):")
+                    print(f"  Raw points: {len(points)}")
 
                 # Remove returns from the ego vessel
+                points_before_ego = len(points)
                 points = self.filter_out_ego(points)
+                if self.debug and i == 0 and index == ref_index:
+                    print(f"  After ego filtering: {len(points)} (removed {points_before_ego - len(points)})")
+                    if len(points) > 0:
+                        print(f"  Point range (KITTI): X[{points[:, 0].min():.2f}, {points[:, 0].max():.2f}], "
+                              f"Y[{points[:, 1].min():.2f}, {points[:, 1].max():.2f}], "
+                              f"Z[{points[:, 2].min():.2f}, {points[:, 2].max():.2f}]")
 
                 # Transform points to reference frame
                 pose = self.poses[index]
@@ -269,8 +282,24 @@ class MarineDataset(Dataset):
                 points_tf = KittiPoints2nuScenes(points_tf)
                 points_tf = points_tf.astype(np.float32)
                 
+                if self.debug and i == 0 and index == ref_index:
+                    if len(points_tf) > 0:
+                        print(f"  After coordinate transform (nuScenes): {len(points_tf)} points")
+                        print(f"  Point range (nuScenes): X[{points_tf[:, 0].min():.2f}, {points_tf[:, 0].max():.2f}], "
+                              f"Y[{points_tf[:, 1].min():.2f}, {points_tf[:, 1].max():.2f}], "
+                              f"Z[{points_tf[:, 2].min():.2f}, {points_tf[:, 2].max():.2f}]")
+                        print(f"  Origin (nuScenes): [{origin_tf[0]:.2f}, {origin_tf[1]:.2f}, {origin_tf[2]:.2f}]")
+                        print(f"  pc_range: {self.pc_range}")
+                
                 # Filter points within pc_range (nuScenes coordinate system)
+                points_before_range = len(points_tf)
                 points_tf = self.filter_by_range(points_tf)
+                if self.debug and i == 0 and index == ref_index:
+                    print(f"  After range filtering: {len(points_tf)} (removed {points_before_range - len(points_tf)})")
+                    if len(points_tf) > 0:
+                        print(f"  Final point range: X[{points_tf[:, 0].min():.2f}, {points_tf[:, 0].max():.2f}], "
+                              f"Y[{points_tf[:, 1].min():.2f}, {points_tf[:, 1].max():.2f}], "
+                              f"Z[{points_tf[:, 2].min():.2f}, {points_tf[:, 2].max():.2f}]")
 
             else:
                 # Invalid frame - use empty point cloud

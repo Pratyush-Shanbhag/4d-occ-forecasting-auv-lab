@@ -36,7 +36,9 @@ def get_grid_mask(points, pc_range):
 def get_rendered_pcds(origin, points, tindex, gt_dist, pred_dist, pc_range, eval_within_grid=False, eval_outside_grid=False):
     pcds = []
     for t in range(len(origin)):
-        mask = np.logical_and(tindex == t, gt_dist > 0.0)
+        # FIX: Use pred_dist > 0.0 for predictions, not gt_dist > 0.0
+        # This ensures we show all predicted points, not just where ground truth has valid rays
+        mask = np.logical_and(tindex == t, pred_dist > 0.0)
         if eval_within_grid:
             mask = np.logical_and(mask, get_grid_mask(points, pc_range))
         if eval_outside_grid:
@@ -278,6 +280,37 @@ def test(args):
                 pred_pcd = pred_pcds[k]
                 gt_pcd = gt_pcds[k]
                 origin = output_origin[j][k].cpu().numpy()
+
+                # Statistics for this timestep
+                pred_dist_t = ret_dict["pred_dist"][j][output_tindex[j] == k].cpu().numpy()
+                gt_dist_t = ret_dict["gt_dist"][j][output_tindex[j] == k].cpu().numpy()
+                
+                # Log statistics
+                if k == 0 and j == 0 and i == 0:  # Print header for first sample
+                    print("\n" + "="*80)
+                    print("PREDICTION STATISTICS")
+                    print("="*80)
+                
+                if (i == 0 and j == 0) or (i % 10 == 0 and j == 0):  # Print for first batch or every 10 batches
+                    print(f"\nBatch {i}, Sample {j}, Time {k}:")
+                    print(f"  Pred points: {len(pred_pcd)}, GT points: {len(gt_pcd)}")
+                    if np.any(pred_dist_t > 0):
+                        print(f"  Pred dist - valid: {np.sum(pred_dist_t > 0)}/{len(pred_dist_t)}, "
+                              f"mean: {np.mean(pred_dist_t[pred_dist_t > 0]):.2f}m")
+                    else:
+                        print(f"  Pred dist - valid: 0/{len(pred_dist_t)}, mean: N/A")
+                    if np.any(gt_dist_t > 0):
+                        print(f"  GT dist - valid: {np.sum(gt_dist_t > 0)}/{len(gt_dist_t)}, "
+                              f"mean: {np.mean(gt_dist_t[gt_dist_t > 0]):.2f}m")
+                    else:
+                        print(f"  GT dist - valid: 0/{len(gt_dist_t)}, mean: N/A")
+                    if len(pred_pcd) > 0 and len(gt_pcd) > 0:
+                        print(f"  Pred range: X[{pred_pcd[:, 0].min():.2f}, {pred_pcd[:, 0].max():.2f}], "
+                              f"Y[{pred_pcd[:, 1].min():.2f}, {pred_pcd[:, 1].max():.2f}], "
+                              f"Z[{pred_pcd[:, 2].min():.2f}, {pred_pcd[:, 2].max():.2f}]")
+                        print(f"  GT range: X[{gt_pcd[:, 0].min():.2f}, {gt_pcd[:, 0].max():.2f}], "
+                              f"Y[{gt_pcd[:, 1].min():.2f}, {gt_pcd[:, 1].max():.2f}], "
+                              f"Z[{gt_pcd[:, 2].min():.2f}, {gt_pcd[:, 2].max():.2f}]")
 
                 # get the metrics
                 metrics["count"] += 1
